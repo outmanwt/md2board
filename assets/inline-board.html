@@ -1,0 +1,111 @@
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;">PROJECT_TITLE 进度看板：N 个阶段 M 项验收，已完成 K 项，整体 P%</h2>
+<style>
+.pd-c{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:8px;overflow:hidden}
+.pd-h{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
+.pd-h:hover,.pd-i:hover{background:var(--color-background-secondary)}
+.pd-i{display:flex;align-items:center;gap:8px;padding:9px 12px 9px 26px;cursor:pointer;font-size:13px}
+.pd-s{display:flex;gap:9px;padding:8px 12px 10px 46px}
+.pd-bar{height:4px;border-radius:2px;background:var(--color-background-secondary);flex:1;min-width:50px;overflow:hidden}
+.pd-bar>i{display:block;height:100%;border-radius:2px;background:#1D9E75;transition:width .2s}
+.pd-bar.part>i{background:#BA7517}
+.pd-cb{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--color-border-secondary);flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.pd-cb.on{background:#1D9E75;border-color:#1D9E75}
+.pd-cb svg{opacity:0}.pd-cb.on svg{opacity:1}
+.pd-chev{flex:none;color:var(--color-text-tertiary);transition:transform .15s}
+.pd-kids{display:none}.pd-open>.pd-kids{display:block}
+.pd-open>.pd-h>.pd-chev,.pd-open>.pd-i>.pd-chev{transform:rotate(90deg)}
+</style>
+<div id="pdRoot"></div>
+<script>
+var PD = {
+  title: '项目标题',
+  goal: '一句话目标',
+  phases: [
+    { title: '阶段名称', chapters: [
+      { title: '章节名称', sections: [
+        { title: '小节名称', items: [ { t: '验收项文本', done: true } ] }
+      ] }
+    ] }
+  ]
+};
+(function () {
+  var root = document.getElementById('pdRoot');
+  var CHEV = '<svg class="pd-chev" width="10" height="10" viewBox="0 0 10 10"><path d="M3 1.5 L7 5 L3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+  var TICK = '<svg width="9" height="9" viewBox="0 0 10 10"><path d="M1.5 5.2 L4 7.6 L8.5 2.4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function bar(max) { return '<span class="pd-bar" data-bar style="max-width:' + (max || 56) + 'px"><i></i></span>'; }
+  function chip() { return '<span data-chip style="font-size:11px;padding:2px 7px;border-radius:999px;flex:none"></span>'; }
+  var html = '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">' +
+    '<div style="position:relative;width:72px;height:72px;flex:none">' +
+    '<svg width="72" height="72" viewBox="0 0 72 72" role="img" aria-label="整体完成率进度环">' +
+    '<circle cx="36" cy="36" r="30" fill="none" stroke="var(--color-border-tertiary)" stroke-width="7"></circle>' +
+    '<circle id="pdRing" cx="36" cy="36" r="30" fill="none" stroke="#1D9E75" stroke-width="7" stroke-linecap="round" transform="rotate(-90 36 36)"></circle></svg>' +
+    '<div id="pdPct" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500"></div></div>' +
+    '<div style="min-width:0"><div style="font-size:15px;font-weight:500">' + esc(PD.title) + '</div>' +
+    '<div style="font-size:13px;color:var(--color-text-secondary);margin-top:3px;line-height:1.6">' + esc(PD.goal) + '</div>' +
+    '<div id="pdCount" style="font-size:12px;color:var(--color-text-secondary);margin-top:6px"></div></div></div>';
+  PD.phases.forEach(function (ph, pi) {
+    html += '<div class="pd-c' + (pi === 0 ? ' pd-open' : '') + '" data-ph>' +
+      '<div class="pd-h">' + CHEV +
+      '<span style="font-size:11px;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--color-background-secondary);color:var(--color-text-secondary)">' + ('0' + (pi + 1)).slice(-2) + '</span>' +
+      '<span style="font-size:13px;font-weight:500;flex:1">' + esc(ph.title) + '</span>' + bar(70) +
+      '<span data-cnt style="font-size:12px;color:var(--color-text-secondary);min-width:26px;text-align:right"></span>' + chip() + '</div><div class="pd-kids">';
+    ph.chapters.forEach(function (ch, ci) {
+      html += '<div class="pd-ch' + (pi === 0 && ci === 0 ? ' pd-open' : '') + '" data-ch>' +
+        '<div class="pd-i">' + CHEV + '<span style="flex:1">' + esc(ch.title) + '</span>' + bar(56) +
+        '<span data-cnt style="font-size:12px;color:var(--color-text-secondary);min-width:26px;text-align:right"></span></div><div class="pd-kids">';
+      ch.sections.forEach(function (se) {
+        html += '<div class="pd-s"><div style="flex:1;min-width:0"><div style="font-size:13px">' + esc(se.title) + '</div>';
+        se.items.forEach(function (it) {
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-top:5px">' +
+            '<span class="pd-cb' + (it.done ? ' on' : '') + '" role="checkbox" aria-checked="' + (it.done ? 'true' : 'false') + '" tabindex="0">' + TICK + '</span>' +
+            '<span style="font-size:12px;color:var(--color-text-secondary)">' + esc(it.t) + '</span></div>';
+        });
+        html += '</div></div>';
+      });
+      html += '</div></div>';
+    });
+    html += '</div></div>';
+  });
+  root.innerHTML = html;
+  var C = 2 * Math.PI * 30;
+  function stat(el) {
+    var cbs = el.querySelectorAll('.pd-cb'), done = 0;
+    for (var i = 0; i < cbs.length; i++) { if (cbs[i].classList.contains('on')) done++; }
+    return { done: done, tot: cbs.length, pct: cbs.length ? Math.round(done * 100 / cbs.length) : 0 };
+  }
+  function paint(el) {
+    var s = stat(el), b = el.querySelector('[data-bar]'), c = el.querySelector('[data-cnt]');
+    if (b) { b.firstElementChild.style.width = s.pct + '%'; b.classList.toggle('part', s.pct > 0 && s.pct < 100); }
+    if (c) c.textContent = s.done + '/' + s.tot;
+    return s;
+  }
+  function chipStyle(el, pct) {
+    var c = el.querySelector('[data-chip]'); if (!c) return;
+    c.textContent = pct === 100 ? '已完成' : (pct === 0 ? '未开始' : '进行中');
+    c.style.background = pct === 100 ? 'var(--color-background-success)' : (pct === 0 ? 'var(--color-background-secondary)' : 'var(--color-background-warning)');
+    c.style.color = pct === 100 ? 'var(--color-text-success)' : (pct === 0 ? 'var(--color-text-secondary)' : 'var(--color-text-warning)');
+  }
+  function upd() {
+    root.querySelectorAll('[data-ch]').forEach(paint);
+    var phases = root.querySelectorAll('[data-ph]'), donePhases = 0;
+    phases.forEach(function (p) { var s = paint(p); if (s.pct === 100) donePhases++; chipStyle(p, s.pct); });
+    var g = stat(root);
+    document.getElementById('pdRing').setAttribute('stroke-dasharray', (g.pct / 100 * C).toFixed(1) + ' ' + C.toFixed(1));
+    document.getElementById('pdPct').textContent = g.pct + '%';
+    document.getElementById('pdCount').textContent = '验收 ' + g.done + ' / ' + g.tot + ' · 阶段 ' + phases.length + ' 个 · 已完成 ' + donePhases + ' 个阶段';
+  }
+  root.addEventListener('click', function (e) {
+    var cb = e.target.closest('.pd-cb');
+    if (cb) {
+      cb.classList.toggle('on');
+      cb.setAttribute('aria-checked', cb.classList.contains('on') ? 'true' : 'false');
+      upd();
+      return;
+    }
+    var tog = e.target.closest('.pd-h, .pd-i');
+    if (tog) tog.parentElement.classList.toggle('pd-open');
+  });
+  upd();
+})();
+</script>

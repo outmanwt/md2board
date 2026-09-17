@@ -1,0 +1,23 @@
+# 依赖与构建产物
+node_modules/
+dist/
+*.zip
+
+# 编辑器与系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# 本地生成物（看板产物不应入库）
+dashboard.html
+index.html
+
+# Python
+__pycache__/
+*.pyc
+
+# 宿主环境
+.workbuddy/
+.agents/
